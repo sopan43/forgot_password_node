@@ -19,9 +19,7 @@ var fs = require('fs');
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
 
-app.use(basicAuth({
-    users: { 'admin': 'supersecret' }
-}));
+
 
 
 var con = mysql.createConnection({
@@ -46,7 +44,7 @@ app.get('/', function(req, res) {
 function genrateToken(email) {
     var token = jwt.sign({
         data: email
-    }, 'secret', { expiresIn: '0s' });
+    }, 'secret', { expiresIn: '3h' });
     return token;
 
 }
@@ -55,7 +53,7 @@ function genrateToken(email) {
 app.post('/forgot', function(req, res) {
     var email = req.body.email;
     var token = genrateToken(email);
-
+console.log(email);
     var smtpTransport = nodemailer.createTransport({
         service: "Gmail",
         auth: {
@@ -63,12 +61,14 @@ app.post('/forgot', function(req, res) {
             pass: "emilence"
         }
     });
-    var url = `http://localhost:3000/reset/${token}/`;
+
+    var url = "http://localhost:3000/reset/"+token;
+
     var mailOptions = {
         to: email,
         from: 'test.emilence@gmail.com',
-        subject: 'reset password',
-        text: 'click on the link to reset password ' + url
+        subject: 'Feedback',
+        text: "Click on the link to reset password \n" + url
 
 
     };
@@ -83,7 +83,7 @@ app.post('/forgot', function(req, res) {
         }
     });
 
-    return res.status(200).send();
+    //  return res.status(200).send();
 
 });
 
@@ -111,12 +111,12 @@ app.post('/reset/:token', function(req, res) {
 
     form.on('end', function() {
         if (fields.new_password !== fields.confirm_password || fields.new_password.trim().length === 0 || fields.confirm_password.trim().length === 0) {
-             res.sendFile(path.join(__dirname + '/templates/passwordmissmatch.html'));
+            res.sendFile(path.join(__dirname + '/templates/passwordmissmatch.html'));
         } else {
             var hashedPassword = passwordHash.generate(fields.confirm_password.trim());
-            con.query('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, req.session.user_email], (err, resff) => {
+            con.query('UPDATE user SET user_password = ? WHERE user_email = ?', [hashedPassword, req.session.user_email], (err, resff) => {
                 if (err) { throw (err) } else {
-                     res.sendFile(path.join(__dirname + '/templates/change.html'));
+                    res.sendFile(path.join(__dirname + '/templates/changed.html'));
                 }
             });
 
